@@ -1,0 +1,62 @@
+body {
+  background-color: #f0f4f7;
+  color: #333;
+}
+
+.webcam-container {
+  height: 400px;
+  width: 400px;
+}
+
+.label-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 1rem;
+}
+
+.prediction-card,
+.labels-card {
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  color: black;
+  position: relative;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.labels-card {
+  max-width: 300px;
+  margin-left: 1rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.label-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.label-name {
+  font-weight: bold;
+  color: #2d3748;
+  text-align: left;
+  flex-grow: 1;
+}
+
+.label-value {
+  font-weight: bold;
+  color: #2d3748;
+  text-align: right;
+  min-width: 150px;
+  /* Adjust width for spacing */
+}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Recognition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/styles/image_recognition.css">
+</head>
+
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen">
+    <section class="text-gray-600 body-font overflow-hidden">
+        <div class="container px-5 py-24 mx-auto">
+            <div class="lg:w-4/5 mx-auto flex flex-wrap">
+                <div class="lg:w-1/2 w-full lg:pr-10 lg:py-6 mb-6 lg:mb-0">
+                    <h2 class="text-sm title-font text-gray-500 tracking-widest">AI Model</h2>
+                    <h1 class="text-gray-900 text-3xl title-font font-medium mb-4">Teachable Machine Image Model</h1>
+                    <p class="leading-relaxed mb-4">This model uses the Teachable Machine to classify images in
+                        real-time. Click "Start" to begin capturing and see predictions for different classes based on
+                        the model's training.</p>
+
+                    <!-- Webcam Card -->
+                    <div id="prediction-card" class="prediction-card mb-6 text-center">
+                        <p>Click "Start" to view the predictions.</p>
+                    </div>
+
+                    <!-- Label Predictions -->
+                    <div id="label-container" class="label-container">
+                        <!-- Labels will be dynamically added here -->
+                    </div>
+
+                    <!-- Highest Prediction -->
+                    <div class="flex mb-6">
+                        <span class="title-font font-medium text-2xl text-gray-900" id="highest-prediction">Highest
+                            prediction will be shown here</span>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="flex mb-6">
+                        <button id="control-button" type="button" onclick="toggleRecording()"
+                            class="flex ml-auto text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded">Start</button>
+                    </div>
+                </div>
+
+                <div class="lg:w-1/2 w-full">
+                    <div id="webcam-container" class="webcam-container mx-auto hidden"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "https://teachablemachine.withgoogle.com/models/YxTXkI1Tm/";
+
+        let model, webcam, labelContainer, maxPredictions;
+        let isRecording = false;
+
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            const flip = true;
+            webcam = new tmImage.Webcam(400, 400, flip);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            document.getElementById("webcam-container").classList.remove("hidden");
+            document.getElementById("prediction-card").classList.add("hidden");
+
+            labelContainer = document.getElementById("label-container");
+            labelContainer.innerHTML = '';
+            for (let i = 0; i < maxPredictions; i++) {
+                const labelDiv = document.createElement("div");
+                labelDiv.id = `label-${i + 1}`;
+                labelDiv.className = "label-item flex justify-between items-center mb-2";
+
+                const nameSpan = document.createElement("span");
+                nameSpan.id = `label-${i + 1}-name`;
+                nameSpan.className = "label-name w-1/2";
+
+                const valueSpan = document.createElement("span");
+                valueSpan.id = `label-${i + 1}-value`;
+                valueSpan.className = "label-value w-1/2 text-right";
+
+                labelDiv.appendChild(nameSpan);
+                labelDiv.appendChild(valueSpan);
+                labelContainer.appendChild(labelDiv);
+            }
+
+            document.getElementById("webcam-container").classList.remove("hidden");
+            document.getElementById("label-container").classList.remove("hidden");
+
+            const controlButton = document.getElementById("control-button");
+            controlButton.innerText = "Stop";
+            controlButton.classList.remove("bg-indigo-500", "hover:bg-indigo-600");
+            controlButton.classList.add("bg-red-500", "hover:bg-red-600");
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            let highestPrediction = { className: "", probability: 0 };
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction = prediction[i];
+                const nameSpan = document.getElementById(`label-${i + 1}-name`);
+                const valueSpan = document.getElementById(`label-${i + 1}-value`);
+
+                // Update class name and probability
+                nameSpan.textContent = classPrediction.className;
+                valueSpan.textContent = `${(classPrediction.probability * 100).toFixed(2)}%`;
+
+                // Update highest prediction
+                if (classPrediction.probability > highestPrediction.probability) {
+                    highestPrediction = classPrediction;
+                }
+            }
+
+            document.getElementById("highest-prediction").textContent = `Highest: ${highestPrediction.className}: ${(highestPrediction.probability * 100).toFixed(2)}%`;
+        }
+
+        function toggleRecording() {
+            const controlButton = document.getElementById("control-button");
+
+            if (!isRecording) {
+                controlButton.innerHTML = `
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        Loading...`;
+
+                isRecording = true;
+                init();
+            } else {
+                stopRecording();
+            }
+        }
+
+        function stopRecording() {
+            isRecording = false;
+
+            if (webcam) {
+                webcam.stop();
+                webcam = null; // Ensure webcam instance is cleared
+            }
+
+            document.getElementById("webcam-container").innerHTML = ''; // Clear webcam container
+            document.getElementById("label-container").innerHTML = ''; // Clear predictions
+            document.getElementById("highest-prediction").innerHTML = 'Highest prediction will be shown here'; // Reset highest prediction
+
+            const controlButton = document.getElementById("control-button");
+            controlButton.innerText = "Start";
+            controlButton.classList.remove("bg-red-500", "hover:bg-red-600");
+            controlButton.classList.add("bg-indigo-500", "hover:bg-indigo-600");
+
+            document.getElementById("prediction-card").classList.remove("hidden");
+        }
+    </script>
+</body>
+
+</html>
